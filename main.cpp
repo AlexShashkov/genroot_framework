@@ -8,10 +8,10 @@
 using std::fma;
 
 int main() {
-    int l = 5;
+    int l = 7;
     std::vector<long double> roots(l, 0.0);
     std::vector<long double> a(l+1, 0.0);
-    generate_polynomial(l, 0, 0, 0, 1.0L, 0.0L, 20.0L, roots, a);
+    generate_polynomial(l, 0, 3, 3, 1.0L, 0.0L, 20.0L, roots, a);
 
 std::cout << "\nFRAMEWORK ROOTS:\n";
     for(auto &el : roots){
