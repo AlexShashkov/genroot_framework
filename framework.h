@@ -20,10 +20,6 @@ template <typename fp_t> inline fp_t pr_product_difference(fp_t a, fp_t b, fp_t 
   return fma(a, b, -tmp) + fma(-d, c, tmp);
 }
 
-#ifndef NTESTS
-#define NTESTS 10000
-#endif
-
 // Creates a test polynomial of degree 2, both in the form of roots, e.g. (x-roots[0])*(x-roots[1])*(quadratic polynomial with no real roots)
 // as well as represented by its coefficients, e.g.
 // (coefficients[4]=1)*x^4 + coefficients[3]*x^3 + coefficients[2]*x^2 + coefficients[1]*x + coefficients[0].
@@ -288,6 +284,8 @@ switch (P)
           << first4_simple_roots << " " << first4_multiple_roots << "\n";
 
         std::vector<fp_t> coefficients4(4, 0);
+
+        int crnt_idx;
         int generated4 = crnt_idx = generate_polynomial_4(N_pairs_of_complex_roots, N_clustered_roots, N_multiple_roots, max_distance_between_clustered_roots, 
             root_sweep_low, root_sweep_high, roots, coefficients4);
         std::copy(coefficients4.begin(), coefficients4.end(), coefficients.end() - coefficients4.size()-1);
@@ -296,62 +294,72 @@ switch (P)
             std::cout<< el << ',';
         }
 
+        std::cout << "\nr ";
+
+        for(auto &el : roots){
+            std::cout<< el << ',';
+        }
+
         // current root id
         roots[crnt_idx] = re = rnr(rng); // Generate the first root
 
+        std::cout << "\nBASIC GEN " << re;
+
         //  Generate last clustered roots
-        std::cout << "\nGenerating clustered roots: " <<  N_clustered_roots-first4_clustered_roots;
-        for (int i = 1; i < N_clustered_roots-first4_clustered_roots; ++i) {
+        std::cout << "\nGenerating roots after finding basic 4. \nGenerating clustered roots: " <<  N_clustered_roots-first4_clustered_roots;
+        for (int i = 0; i < N_clustered_roots-first4_clustered_roots; ++i) {
             im = rnc(rng); // Generate a small random number
             re = roots[++crnt_idx] = (re > root_mid_sweep) ? re - im : re + im; // Generate the next root close to the previous one
         }
 
         // Generate multiple roots
         std::cout << "\nGenerating multiple roots: " <<  N_multiple_roots-first4_multiple_roots;
-        std::fill(roots.begin() + crnt_idx, roots.begin() + crnt_idx + N_multiple_roots-first4_multiple_roots, (N_clustered_roots != first4_clustered_roots )? rnr(rng): re);
-        crnt_idx += first4_multiple_roots;
+        // std::fill(roots.begin() + crnt_idx, roots.begin() + crnt_idx + N_multiple_roots-first4_multiple_roots, (N_clustered_roots != first4_clustered_roots )? rnr(rng): re);
+        // crnt_idx += first4_multiple_roots;
 
         // Finally, generate last simple roots
         std::cout << "\nGenerating simple roots: " <<  n_simple_roots-first4_simple_roots;
-        std::generate(roots.begin() + crnt_idx, roots.begin() + crnt_idx + n_simple_roots-first4_simple_roots, [&]{ return rnr(rng); });
+        std::cout << "\n FROM " << crnt_idx << " TO " << crnt_idx + n_simple_roots-first4_simple_roots;
+        std::generate(roots.begin() + crnt_idx, roots.begin() + crnt_idx + n_simple_roots-first4_simple_roots, [&]{ return crnt_idx++==generated4? re : rnr(rng); });
+
+        std::cout << "\n REGEN ROOTS ";
+        for(auto &el : roots){
+            std::cout<< el << ',';
+        }
+
+        std::cout << "\n";
         
         
         // Calculate resulting coefficients
         std::vector<fp_t> coefficients_new = coefficients;
 
-        for (int i = generated4; i <= P-first4_complex_roots_cnt; ++i){
-        for (int j = P-4; j >= 0; --j){
+        for (int i = generated4; i < P-first4_complex_roots_cnt; ++i){
+        std::cout << "\nROOT #" << i << "\n";
+        for (int j = P-2; j >= first4_complex_roots_cnt; --j){ // ?????????????????????????????????????????????????
+            std::cout << "j:" << j << "\n";
+            std::cout << "-coeff[j+1]:" << -coefficients[j+1] << "; roots[i]:" << roots[i] << "; " << "coeff[j]: " << coefficients[j];
+            std::cout << "; fma: " << std::fma(-coefficients[j+1], roots[i] , coefficients[j]);
             coefficients_new[j] = std::fma(-coefficients[j+1], roots[i] , coefficients[j]);
+            std::cout << "\n coeff_new[j]:" << coefficients_new[j] << "\n";
         }
         coefficients_new[P-1] -= roots[i];
+        std::cout << "\ncoeff_new[P-1]: " << coefficients_new[P-1];
         coefficients = coefficients_new;
         }
 
         // Generate last complex roots
-        std::complex<fp_t> root1, root2;
         std::cout << "\nGenerating complex roots: " <<  N_pairs_of_complex_roots - first4_complex_roots;
         for (int i = 0; i < N_pairs_of_complex_roots - first4_complex_roots; ++i) {
-            re = rnr(rng); // Generate the real part
-            im = rnr(rng); // Generate the imaginary part
-            root1 = std::complex<fp_t>(re, im);
-            root2 = std::complex<fp_t>(re, -im);
-
-            for (int j = P-crnt_idx; j >= 0; --j){
-              coefficients_new[j] = std::fma(-coefficients[j+1], root1, coefficients[j]);
-            }
-            coefficients_new[P-1] -= root1;
-            coefficients = coefficients_new;
+            re=rnr(rng); while ((im=rnr(rng))==static_cast<fp_t>(0.0L)) {}
+            auto c1=static_cast<fp_t>(-2.0L*re); // -2*re
+            auto c2=static_cast<fp_t>(pr_product_difference(re, re, -im, im)); // re*re+im*im
 
             for (int j = P-crnt_idx-1; j >= 0; --j){
-              coefficients_new[j] = std::fma(-coefficients[j+1], root2, coefficients[j]);
+              coefficients_new[j] = std::fma(coefficients[j], c1, std::fma(coefficients[j+1], c2, coefficients[j+2]));
             }
-            coefficients_new[P-1] -= root2;
+            coefficients_new[P-first4_complex_roots_cnt] *= c2 ; // first not null element
             coefficients = coefficients_new;
 
-            re=rnr(rng); while ((im=rnr(rng))==static_cast<fp_t>(0.0L)) {}
-            RE=re; IM=im;
-            coefficients[1]=static_cast<fp_t>(-2.0L*RE); // -2*re
-            coefficients[0]=static_cast<fp_t>(pr_product_difference(RE, RE, -IM, IM)); // re*re+im*im
         }
         return P;
     }
