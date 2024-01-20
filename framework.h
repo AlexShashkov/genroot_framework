@@ -45,8 +45,8 @@ std::vector<fp_t> &coefficients) // storage where to put the coefficients; size 
     std::mt19937_64 rng(seed); // randomize seed from the clock
     std::uniform_real_distribution<fp_t> rnr(root_sweep_low, root_sweep_high); // uniform random data generator for single roots
     std::uniform_real_distribution<fp_t> rnc(static_cast<fp_t>(0.0L), max_distance_between_clustered_roots); // uniform random data generator for root clusters
-    fp_t re, im, u, v, root_mid_sweep=root_sweep_low+0.5*(root_sweep_high-root_sweep_low);
-    long double RE, IM, U, V, TMP; // high-precisioon counterparts of re, im, u, v //TODO: BIGNUM
+    fp_t re, im, root_mid_sweep=root_sweep_low+0.5*(root_sweep_high-root_sweep_low);
+    long double RE, IM; // high-precisioon counterparts of re, im
 
     if (N_pairs_of_complex_roots==1) // no real roots
         {
@@ -92,8 +92,8 @@ std::vector<fp_t> &coefficients) // storage where to put the coefficients; size 
     std::mt19937_64 rng(seed); // randomize seed from the clock
     std::uniform_real_distribution<fp_t> rnr(root_sweep_low, root_sweep_high); // uniform random data generator for single roots
     std::uniform_real_distribution<fp_t> rnc(static_cast<fp_t>(0.0L), max_distance_between_clustered_roots); // uniform random data generator for root clusters
-    fp_t re, im, u, v, root_mid_sweep=root_sweep_low+0.5*(root_sweep_high-root_sweep_low);
-    long double RE, IM, U, V, TMP; // high-precisioon counterparts of re, im, u, v //TODO: BIGNUM
+    fp_t re, im, u, root_mid_sweep=root_sweep_low+0.5*(root_sweep_high-root_sweep_low);
+    long double RE, IM, U, V; // high-precisioon counterparts of re, im, u, v //TODO: BIGNUM
     if (N_pairs_of_complex_roots==1) // one real root
       {
       re=rnr(rng); while ((im=rnr(rng))==static_cast<fp_t>(0.0L)) {} roots[0]=u=rnr(rng);
@@ -284,7 +284,7 @@ switch (P)
         int roots_left = 4, roots_generated_by_old=0;
 
         int first4_clustered_roots   = N_clustered_roots <= 4 ? N_clustered_roots : 0;
-        int first4_multiple_roots    = (N_multiple_roots <= 4 & first4_clustered_roots == 0)? N_multiple_roots : 0;
+        int first4_multiple_roots    = (N_multiple_roots <= 4 && first4_clustered_roots == 0)? N_multiple_roots : 0;
         roots_left -= (first4_clustered_roots + first4_multiple_roots);
         int first4_complex_roots     = roots_left >= 2 && N_pairs_of_complex_roots > 0 ? ( roots_left < 4 || N_pairs_of_complex_roots==1 ? 1: 2 ):0;
         int first4_complex_roots_cnt = first4_complex_roots*2;
@@ -336,7 +336,8 @@ switch (P)
         // Generate multiple roots
         // std::cout << "\nGenerating multiple roots: " <<  N_multiple_roots-first4_multiple_roots;
         re = N_clustered_roots != first4_clustered_roots ? rnr(rng): re;
-        for(int i = crnt_idx; i < crnt_idx + N_multiple_roots-first4_multiple_roots; ++i){
+        roots_left = crnt_idx;
+        for(int i = roots_left; i < roots_left + N_multiple_roots-first4_multiple_roots; ++i){
           roots[crnt_idx++] = re;
         }
 
