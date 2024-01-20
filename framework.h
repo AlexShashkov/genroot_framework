@@ -312,19 +312,21 @@ switch (P)
             std::cout<< el << ',';
         }
 
+        /*
         std::cout << "\nr ";
 
         for(auto &el : roots){
             std::cout<< el << ',';
         }
+        */
 
         // current root id
         re = rnr(rng); // Generate the first root
 
-        std::cout << "\nBASIC GEN " << re;
+        // std::cout << "\nBASIC GEN " << re;
 
         //  Generate last clustered roots
-        std::cout << "\nGenerating roots after finding basic n. \nGenerating clustered roots: " <<  N_clustered_roots-first4_clustered_roots;
+        // std::cout << "\nGenerating roots after finding basic n. \nGenerating clustered roots: " <<  N_clustered_roots-first4_clustered_roots;
         for (int i = 0; i < N_clustered_roots-first4_clustered_roots; ++i) {
             im = rnc(rng); // Generate a small random number
             re = roots[crnt_idx++] = (re > root_mid_sweep) ? re - im : re + im; // Generate the next root close to the previous one
@@ -332,25 +334,27 @@ switch (P)
         }
 
         // Generate multiple roots
-        std::cout << "\nGenerating multiple roots: " <<  N_multiple_roots-first4_multiple_roots;
+        // std::cout << "\nGenerating multiple roots: " <<  N_multiple_roots-first4_multiple_roots;
         re = N_clustered_roots != first4_clustered_roots ? rnr(rng): re;
         for(int i = crnt_idx; i < crnt_idx + N_multiple_roots-first4_multiple_roots; ++i){
           roots[crnt_idx++] = re;
         }
 
         // Finally, generate last simple roots
-        std::cout << "\nGenerating simple roots: " <<  n_simple_roots-first4_simple_roots;
-        std::cout << "\n FROM " << crnt_idx << " TO " << crnt_idx + n_simple_roots-first4_simple_roots;
+        // std::cout << "\nGenerating simple roots: " <<  n_simple_roots-first4_simple_roots;
+        // std::cout << "\n FROM " << crnt_idx << " TO " << crnt_idx + n_simple_roots-first4_simple_roots;
         for(int i = crnt_idx; i < crnt_idx + n_simple_roots-first4_simple_roots; ++i){
           roots[i] = rnr(rng);
         }
 
-        std::cout << "\n REGEN ROOTS ";
+        // std::cout << "\n REGEN ROOTS ";
+        /*
         for(auto &el : roots){
             std::cout<< el << ',';
         }
+        */
 
-        std::cout << "\n";
+        // std::cout << "\n";
         
         
         // Calculate resulting coefficients
@@ -369,22 +373,22 @@ switch (P)
 
 
         for (int i = roots_generated_by_old; i < P-first4_complex_roots_cnt; ++i){
-          std::cout << "\nROOT #" << i << "\n";
+          // std::cout << "\nROOT #" << i << "\n";
           for (int j = P-2; j >= 0; --j){
-              std::cout << "j:" << j << "\n";
-              std::cout << "-coeff[j+1]:" << -big_coeffs[j+1] << "; roots[i]:" << big_roots[i] << "; " << "coeff[j]: " << big_coeffs[j];
-              std::cout << "; fma: " << std::fma(-big_coeffs[j+1].ToDouble(), big_roots[i].ToDouble(), big_coeffs[j].ToDouble());
+              // std::cout << "j:" << j << "\n";
+              // std::cout << "-coeff[j+1]:" << -big_coeffs[j+1] << "; roots[i]:" << big_roots[i] << "; " << "coeff[j]: " << big_coeffs[j];
+              // std::cout << "; fma: " << std::fma(-big_coeffs[j+1].ToDouble(), big_roots[i].ToDouble(), big_coeffs[j].ToDouble());
               big_coeffs_new[j] = ttmath::Big<1,2>(std::fma(-big_coeffs[j+1].ToDouble(), big_roots[i].ToDouble(), big_coeffs[j].ToDouble()));
-              std::cout << "\n coeff_new[j]:" << big_coeffs_new[j] << "\n";
+              // std::cout << "\n coeff_new[j]:" << big_coeffs_new[j] << "\n";
           }
           big_coeffs_new[P-1] -= big_roots[i];
-          std::cout << "\ncoeff_new[P-1]: " << big_coeffs_new[P-1];
+          // std::cout << "\ncoeff_new[P-1]: " << big_coeffs_new[P-1];
           // coefficients = coefficients_new;
           big_coeffs = big_coeffs_new;
         }
 
         // Generate last complex roots
-        std::cout << "\nGenerating complex roots: " <<  N_pairs_of_complex_roots - first4_complex_roots << " pairs";
+        // std::cout << "\nGenerating complex roots: " <<  N_pairs_of_complex_roots - first4_complex_roots << " pairs";
         for (int i = 0; i < N_pairs_of_complex_roots - first4_complex_roots; ++i) {
             re=rnr(rng); while ((im=rnr(rng))==static_cast<fp_t>(0.0L)) {}
             auto c1=static_cast<fp_t>(-2.0L*re); // -2*re
