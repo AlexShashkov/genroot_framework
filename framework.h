@@ -1,6 +1,12 @@
 #ifndef POLYGEN
 #define POLYGEN
 
+#define PR_NUMBERS_OF_ROOTS_EQUAL     0
+#define PR_AT_LEAST_ONE_ROOT_LOST    -1
+#define PR_AT_LEAST_ONE_ROOT_IS_FAKE -2
+#define PR_2_INFINITE_ROOTS          -3
+
+#include "ttmath/ttmath.h" // Bignum C++ library by Tomasz Sowa
 #include <cmath>
 #include <numbers> // std::numbers::pi_v<fp_t>, requires -std=c++20
 #include <chrono> // for testing only
@@ -22,7 +28,7 @@ template <typename fp_t> inline fp_t pr_product_difference(fp_t a, fp_t b, fp_t 
 
 // Creates a test polynomial of degree 2, both in the form of roots, e.g. (x-roots[0])*(x-roots[1])*(quadratic polynomial with no real roots)
 // as well as represented by its coefficients, e.g.
-// (coefficients[4]=1)*x^4 + coefficients[3]*x^3 + coefficients[2]*x^2 + coefficients[1]*x + coefficients[0].
+// coefficients[2]*x^2 + coefficients[1]*x + coefficients[0].
 // The highest-degree coefficient always equals 1. The function returns the actual number of different real roots placed into the vector
 // (roots) (complex roots are not placed there). Negative return values may mean internal implementation error
 template<typename fp_t> 
@@ -69,7 +75,7 @@ std::vector<fp_t> &coefficients) // storage where to put the coefficients; size 
 
 // Creates a test polynomial of degree 3, both in the form of roots, e.g. (x-roots[0])*(x-roots[1])*(quadratic polynomial with no real roots)
 // as well as represented by its coefficients, e.g.
-// (coefficients[4]=1)*x^4 + coefficients[3]*x^3 + coefficients[2]*x^2 + coefficients[1]*x + coefficients[0].
+// coefficients[3]*x^3 + coefficients[2]*x^2 + coefficients[1]*x + coefficients[0].
 // The highest-degree coefficient always equals 1. The function returns the actual number of different real roots placed into the vector
 // (roots) (complex roots are not placed there). Negative return values may mean internal implementation error
 template<typename fp_t> 
@@ -118,6 +124,8 @@ std::vector<fp_t> &coefficients) // storage where to put the coefficients; size 
     RE=re; IM=im; U=u;
     coefficients[2]=static_cast<fp_t>(-RE-IM-U); coefficients[0]=static_cast<fp_t>(-RE*IM*U);
     V=pr_product_difference(RE,IM,-RE,U); coefficients[1]=static_cast<fp_t>(std::fma(IM,U,V)); // re*im+re*u+im*u=im*u+(re*im-(-re*u));
+    std::cout << "Generated 3 roots!\n";
+    std::cout << roots[0] << " " << roots[1] << " " << roots[2] << "\n";
     return 3;
 }
 
@@ -342,20 +350,33 @@ switch (P)
         
         
         // Calculate resulting coefficients
-        std::vector<fp_t> coefficients_new = coefficients;
+        std::vector<ttmath::Big<1,2>> big_coeffs;
+        for (const fp_t num : coefficients) {
+            ttmath::Big<1,2> bignum(num);
+            big_coeffs.push_back(bignum);
+        }
+        std::vector<ttmath::Big<1,2>> big_coeffs_new = big_coeffs;
+
+        std::vector<ttmath::Big<1,2>> big_roots;
+        for (const fp_t num : roots) {
+            ttmath::Big<1,2> bignum(num);
+            big_roots.push_back(bignum);
+        }
+
 
         for (int i = generated4; i < P-first4_complex_roots_cnt; ++i){
-        std::cout << "\nROOT #" << i << "\n";
-        for (int j = P-2; j >= 0; --j){
-            std::cout << "j:" << j << "\n";
-            std::cout << "-coeff[j+1]:" << -coefficients[j+1] << "; roots[i]:" << roots[i] << "; " << "coeff[j]: " << coefficients[j];
-            std::cout << "; fma: " << std::fma(-coefficients[j+1], roots[i] , coefficients[j]);
-            coefficients_new[j] = std::fma(-coefficients[j+1], roots[i] , coefficients[j]);
-            std::cout << "\n coeff_new[j]:" << coefficients_new[j] << "\n";
-        }
-        coefficients_new[P-1] -= roots[i];
-        std::cout << "\ncoeff_new[P-1]: " << coefficients_new[P-1];
-        coefficients = coefficients_new;
+          std::cout << "\nROOT #" << i << "\n";
+          for (int j = P-2; j >= 0; --j){
+              std::cout << "j:" << j << "\n";
+              std::cout << "-coeff[j+1]:" << -big_coeffs[j+1] << "; roots[i]:" << big_roots[i] << "; " << "coeff[j]: " << big_coeffs[j];
+              std::cout << "; fma: " << std::fma(-big_coeffs[j+1].ToDouble(), big_roots[i].ToDouble(), big_coeffs[j].ToDouble());
+              big_coeffs_new[j] = ttmath::Big<1,2>(std::fma(-big_coeffs[j+1].ToDouble(), big_roots[i].ToDouble(), big_coeffs[j].ToDouble()));
+              std::cout << "\n coeff_new[j]:" << big_coeffs_new[j] << "\n";
+          }
+          big_coeffs_new[P-1] -= big_roots[i];
+          std::cout << "\ncoeff_new[P-1]: " << big_coeffs_new[P-1];
+          // coefficients = coefficients_new;
+          big_coeffs = big_coeffs_new;
         }
 
         // Generate last complex roots
@@ -366,15 +387,48 @@ switch (P)
             auto c2=static_cast<fp_t>(pr_product_difference(re, re, -im, im)); // re*re+im*im
 
             for (int j = P-2; j >= 0; --j){
-              coefficients_new[j] = std::fma(coefficients[j], c1, std::fma(coefficients[j+1], c2, coefficients[j+2]));
+              big_coeffs_new[j] = ttmath::Big<1,2>(std::fma(big_coeffs[j].ToDouble(), c1,
+                                                   std::fma(big_coeffs[j+1].ToDouble(), c2, big_coeffs[j+2].ToDouble())));
             }
-            coefficients_new[P-first4_complex_roots_cnt] *= c2 ; // first not null element
-            coefficients = coefficients_new;
+            big_coeffs_new[P-first4_complex_roots_cnt] *= ttmath::Big<1,2>(c2) ; // first not null element
+            big_coeffs = big_coeffs_new;
         }
-        return P;
+        for (int i=0; i < P+1; ++i) {
+            coefficients[i] = static_cast<fp_t>(big_coeffs[i].ToDouble());
+        }
+        return P - (N_pairs_of_complex_roots*2);
     }
   }
 return -1; // unreachable, means a flaw in control here
+}
+
+// Compares two vectors of roots; root orderings play no role. For each entry in (roots_ground_truth),
+// the closest entry in (roots_to_check) is found and coresponding distance found. Among such distances
+// the largest will be stored to (max_deviation)
+template<typename fp_t> int compare_roots(
+unsigned N_roots_to_check, // number of roots in (roots_to_check)
+unsigned N_roots_ground_truth,  // number of roots in (roots_ground_truth)
+std::vector<fp_t> &roots_to_check, // one should take into account only first (N_roots_to_check) roots here
+std::vector<fp_t> &roots_ground_truth, // one should take into account only first (N_roots_ground_truth) roots here
+fp_t &max_absolute_error, // here the greatest among the smallest deviations of the roots in (roots_to_check) and (roots_ground_truth)
+// will be placed
+fp_t &max_relative_error){
+    int rv = (N_roots_to_check<N_roots_ground_truth) ? PR_AT_LEAST_ONE_ROOT_LOST :
+      ( (N_roots_to_check>N_roots_ground_truth) ? PR_AT_LEAST_ONE_ROOT_IS_FAKE : PR_NUMBERS_OF_ROOTS_EQUAL );
+    long double abs = std::numeric_limits<long double >::max();
+    long double  rel = std::numeric_limits<long double >::max();
+    auto size = roots_to_check.size();
+    for(int j = 0;j<size; j++)
+    for(int i = 0;i < size; i++){
+        long double  absLoc = std::abs((long double)(roots_ground_truth[i])-(long double)(roots_to_check[(i + j) % size]));
+        abs = std::min(absLoc,abs);
+        rel = std::min(std::abs(
+                (long double)(absLoc + std::numeric_limits<fp_t>::epsilon())/
+                        (long double)(std::max(roots_to_check[(i + j) % size],roots_ground_truth[i]) + std::numeric_limits<fp_t>::epsilon())),rel);
+    }
+    max_absolute_error = abs;
+    max_relative_error = rel;
+    return rv;
 }
 
 #endif
