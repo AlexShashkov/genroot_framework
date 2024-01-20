@@ -232,7 +232,7 @@ std::vector<fp_t> &coefficients) // storage where to put the coefficients; size 
 // (coefficients[4]=1)*x^4 + coefficients[3]*x^3 + coefficients[2]*x^2 + coefficients[1]*x + coefficients[0].
 // The highest-degree coefficient always equals 1. The function returns the actual number of different real roots placed into the vector
 // (roots) (complex roots are not placed there). Negative return values may mean internal implementation error
-template<typename fp_t> int generate_polynomial(
+template<typename fp_t, int exponent, int mantissa> int generate_polynomial(
 unsigned P, // polynomial degree
 unsigned N_pairs_of_complex_roots, // how many pairs of complex conjugate roots to introduce
 unsigned N_clustered_roots, // how many clustered roots to introduce; all the clustered roots are real
@@ -358,16 +358,16 @@ switch (P)
         
         
         // Calculate resulting coefficients
-        std::vector<ttmath::Big<1,2>> big_coeffs;
+        std::vector<ttmath::Big<exponent,mantissa>> big_coeffs;
         for (const fp_t num : coefficients) {
-            ttmath::Big<1,2> bignum(num);
+            ttmath::Big<exponent,mantissa> bignum(num);
             big_coeffs.push_back(bignum);
         }
-        std::vector<ttmath::Big<1,2>> big_coeffs_new = big_coeffs;
+        std::vector<ttmath::Big<exponent,mantissa>> big_coeffs_new = big_coeffs;
 
-        std::vector<ttmath::Big<1,2>> big_roots;
+        std::vector<ttmath::Big<exponent,mantissa>> big_roots;
         for (const fp_t num : roots) {
-            ttmath::Big<1,2> bignum(num);
+            ttmath::Big<exponent,mantissa> bignum(num);
             big_roots.push_back(bignum);
         }
 
@@ -378,7 +378,7 @@ switch (P)
               // std::cout << "j:" << j << "\n";
               // std::cout << "-coeff[j+1]:" << -big_coeffs[j+1] << "; roots[i]:" << big_roots[i] << "; " << "coeff[j]: " << big_coeffs[j];
               // std::cout << "; fma: " << std::fma(-big_coeffs[j+1].ToDouble(), big_roots[i].ToDouble(), big_coeffs[j].ToDouble());
-              big_coeffs_new[j] = ttmath::Big<1,2>(std::fma(-big_coeffs[j+1].ToDouble(), big_roots[i].ToDouble(), big_coeffs[j].ToDouble()));
+              big_coeffs_new[j] = ttmath::Big<exponent,mantissa>(std::fma(-big_coeffs[j+1].ToDouble(), big_roots[i].ToDouble(), big_coeffs[j].ToDouble()));
               // std::cout << "\n coeff_new[j]:" << big_coeffs_new[j] << "\n";
           }
           big_coeffs_new[P-1] -= big_roots[i];
@@ -395,14 +395,14 @@ switch (P)
             auto c2=static_cast<fp_t>(pr_product_difference(re, re, -im, im)); // re*re+im*im
 
             for (int j = P-2; j >= 0; --j){
-              big_coeffs_new[j] = ttmath::Big<1,2>(std::fma(big_coeffs[j].ToDouble(), c1,
+              big_coeffs_new[j] = ttmath::Big<exponent,mantissa>(std::fma(big_coeffs[j].ToDouble(), c1,
                                                    std::fma(big_coeffs[j+1].ToDouble(), c2, big_coeffs[j+2].ToDouble())));
             }
-            big_coeffs_new[P-first4_complex_roots_cnt] *= ttmath::Big<1,2>(c2) ; // first not null element
+            big_coeffs_new[P-first4_complex_roots_cnt] *= ttmath::Big<exponent,mantissa>(c2) ; // first not null element
             big_coeffs = big_coeffs_new;
             // std::cout << "\nIM: " << im << "\n";
-            roots[P-i*2-1] = re; // In future we can add support of complex numbers 
-            roots[P-i*2-2] = re;
+            // roots[P-i*2-1] = re; // In future we can add support of complex numbers 
+            // roots[P-i*2-2] = re;
         }
         for (int i=0; i < P+1; ++i) {
             coefficients[i] = static_cast<fp_t>(big_coeffs[i].ToDouble());
