@@ -392,6 +392,7 @@ switch (P)
             ttmath::Big<exponent,mantissa> bignum(num);
             big_coeffs.push_back(bignum);
         }
+        // roots = {-0.594628, -0.706948, -0.743337, -0.702158, -0.608897};
         for (const fp_t num : roots) {
             ttmath::Big<exponent,mantissa> bignum(num);
             big_roots.push_back(bignum);
@@ -430,9 +431,13 @@ switch (P)
             // roots[P-i*2-1] = re; // In future we can add support of complex numbers 
             // roots[P-i*2-2] = re;
         }
+        std::cout << "Bignum coeffs: \n";
         for (int i=0; i < P+1; ++i) {
+            // Print out coeffs to show that it fails on float
+            std::cout << big_coeffs[i] << " ";
             coefficients[i] = static_cast<fp_t>(big_coeffs[i].ToDouble());
         }
+        std::cout << "\n";
         return P - (N_pairs_of_complex_roots*2);
     }
   }
